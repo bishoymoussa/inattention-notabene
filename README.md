@@ -1,6 +1,6 @@
-# Inattention NotaBene: A Novel Stacked Dropout Mechanism
+# Inattention NotaBene: A sui generis Stacked Dropout Mechanism
 
-This repository introduces **Inattention NotaBene**, a novel approach to neural network regularization that works in opposition to traditional attention mechanisms. Instead of focusing on important features, it strategically "forgets" less important ones through a stacked dropout mechanism.
+This repository introduces **Inattention NotaBene**, a sui generis approach to neural network regularization that works in opposition to traditional attention mechanisms. Instead of focusing on important features, it strategically "forgets" less important ones through a stacked dropout mechanism.
 
 ## 🔍 Overview
 

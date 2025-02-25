@@ -36,6 +36,11 @@ We evaluated our approach on the CIFAR-10 dataset, comparing a baseline CNN with
 
 ## 🛠 Usage
 
+```bash
+git clone https://github.com/bishoymoussa/inattention-notabene.git
+cd inattention-notabene
+```
+
 ```python
 from inattention import InattentionDropout, StackedInattentionDropout
 

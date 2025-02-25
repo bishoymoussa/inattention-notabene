@@ -121,3 +121,15 @@ If you use this work in your research, please cite:
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Visualizations
+
+### Inattention Mechanism Development
+The following animation demonstrates how the inattention mechanism develops and affects different classes of images. It shows the original image (left), the developing inattention pattern (middle), and the combined effect (right):
+
+![Inattention Mechanism](inattention_animation.gif)
+
+### Stack Evolution
+This animation shows how different stacks in the inattention mechanism combine to form the final attention pattern. From left to right: original image, current stack pattern with its alpha value, progressive combination of patterns, and the final effect on the image:
+
+![Stack Evolution](stack_evolution.gif)

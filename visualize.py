@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import os
+import imageio
+from matplotlib.colors import LinearSegmentedColormap
 
 # Add the current directory to path to import from train.py
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -124,13 +126,177 @@ def visualize_stack_weights(save_path='stack_weights.png'):
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
+def create_inattention_gif(model, test_loader, device, save_path='inattention_animation.gif', fps=2):
+    """Create an animated visualization of the inattention mechanism."""
+    # Get sample data
+    images, labels = next(iter(test_loader))
+    images = images.to(device)
+    labels = labels.to(device)
+    
+    # Get model predictions and attention patterns
+    model.eval()
+    with torch.no_grad():
+        x = model.conv1(images)
+        x = F.relu(x)
+        x = model.pool(x)
+        x = model.conv2(x)
+        retention_probs = model.inattention1(x)
+    
+    # Create frames
+    frames = []
+    fig = plt.figure(figsize=(15, 8))
+    
+    # Process first 10 images
+    for idx in range(min(10, len(images))):
+        img = images[idx].cpu().permute(1, 2, 0)
+        img = img * torch.tensor([0.2470, 0.2435, 0.2616]) + torch.tensor([0.4914, 0.4822, 0.4465])
+        img = torch.clamp(img, 0, 1)
+        
+        pattern = retention_probs[idx].mean(dim=0).cpu()
+        
+        # Create animation frames
+        for alpha in np.linspace(0, 1, 10):
+            plt.clf()
+            
+            # Plot original image
+            plt.subplot(1, 3, 1)
+            plt.imshow(img)
+            plt.title(f'Original\n{classes[labels[idx].item()]}')
+            plt.axis('off')
+            
+            # Plot inattention pattern with increasing intensity
+            plt.subplot(1, 3, 2)
+            plt.imshow(pattern, cmap='viridis', alpha=alpha)
+            plt.title('Inattention Pattern\n(Developing)')
+            plt.axis('off')
+            
+            # Plot combined effect
+            plt.subplot(1, 3, 3)
+            pattern_resized = F.interpolate(pattern.unsqueeze(0).unsqueeze(0), 
+                                          size=(32, 32), 
+                                          mode='bilinear').squeeze()
+            overlay = img * (1 - alpha * (1 - pattern_resized.unsqueeze(-1).expand(-1, -1, 3)))
+            plt.imshow(overlay)
+            plt.title('Combined Effect\n(Progressive)')
+            plt.axis('off')
+            
+            plt.suptitle(f'Inattention Mechanism Development\nClass: {classes[labels[idx].item()]}', 
+                        fontsize=14, y=1.02)
+            
+            # Save frame
+            plt.savefig('temp_frame.png')
+            frame = imageio.imread('temp_frame.png')
+            frames.append(frame)
+            
+        # Add pause at the end of each image
+        for _ in range(5):  # Hold for 5 frames
+            frames.append(frames[-1])
+    
+    # Save as GIF
+    imageio.mimsave(save_path, frames, fps=fps)
+    plt.close()
+    
+    # Clean up temporary file
+    if os.path.exists('temp_frame.png'):
+        os.remove('temp_frame.png')
+
+def create_stack_evolution_gif(model, test_loader, device, save_path='stack_evolution.gif', fps=2):
+    """Create an animated visualization of how different stacks contribute."""
+    # Get sample data
+    images, labels = next(iter(test_loader))
+    images = images.to(device)
+    
+    # Get model predictions and stack patterns
+    model.eval()
+    with torch.no_grad():
+        x = model.conv1(images)
+        x = F.relu(x)
+        x = model.pool(x)
+        x = model.conv2(x)
+        
+        stack_patterns = []
+        alpha_values = F.softmax(model.inattention1.alpha, dim=0).cpu()
+        
+        for layer in model.inattention1.attention_layers:
+            retention_prob = layer[0](x)
+            stack_patterns.append(retention_prob[0].mean(dim=0).cpu())
+    
+    # Create frames
+    frames = []
+    fig = plt.figure(figsize=(15, 6))
+    
+    # Original image
+    img = images[0].cpu().permute(1, 2, 0)
+    img = img * torch.tensor([0.2470, 0.2435, 0.2616]) + torch.tensor([0.4914, 0.4822, 0.4465])
+    img = torch.clamp(img, 0, 1)
+    
+    # Create frames showing stack evolution
+    combined_pattern = torch.zeros_like(stack_patterns[0])
+    
+    for i in range(len(stack_patterns)):
+        plt.clf()
+        
+        # Plot original image
+        plt.subplot(1, 4, 1)
+        plt.imshow(img)
+        plt.title('Original Image')
+        plt.axis('off')
+        
+        # Plot current stack pattern
+        plt.subplot(1, 4, 2)
+        plt.imshow(stack_patterns[i], cmap='viridis')
+        plt.title(f'Stack {i+1}\nα = {alpha_values[i]:.2f}')
+        plt.axis('off')
+        
+        # Update and plot combined pattern
+        combined_pattern += stack_patterns[i] * alpha_values[i]
+        plt.subplot(1, 4, 3)
+        plt.imshow(combined_pattern, cmap='viridis')
+        plt.title('Combined Pattern\n(Progressive)')
+        plt.axis('off')
+        
+        # Plot effect on image
+        plt.subplot(1, 4, 4)
+        pattern_resized = F.interpolate(combined_pattern.unsqueeze(0).unsqueeze(0), 
+                                      size=(32, 32), 
+                                      mode='bilinear').squeeze()
+        overlay = img * pattern_resized.unsqueeze(-1).expand(-1, -1, 3)
+        plt.imshow(overlay)
+        plt.title('Final Effect')
+        plt.axis('off')
+        
+        plt.suptitle('Stack-wise Evolution of Inattention Pattern', fontsize=14, y=1.02)
+        
+        # Save frame
+        plt.savefig('temp_frame.png')
+        frame = imageio.imread('temp_frame.png')
+        frames.append(frame)
+        
+        # Add pause at final frame
+        if i == len(stack_patterns) - 1:
+            for _ in range(10):  # Hold for 10 frames
+                frames.append(frames[-1])
+    
+    # Save as GIF
+    imageio.mimsave(save_path, frames, fps=fps)
+    plt.close()
+    
+    # Clean up temporary file
+    if os.path.exists('temp_frame.png'):
+        os.remove('temp_frame.png')
+
 if __name__ == '__main__':
     # Load the trained model
     model = InattentionCNN().to(device)
     model.load_state_dict(torch.load('inattention_cnn_best.pth'))
     model.eval()
     
-    # Generate visualizations
+    # Generate static visualizations
     visualize_inattention_patterns()
     visualize_stack_weights()
+    
+    # Generate animated visualizations
+    create_inattention_gif(model, test_loader, device)
+    create_stack_evolution_gif(model, test_loader, device)
+    
     print("Visualizations have been saved!")

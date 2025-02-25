@@ -1,0 +1,17 @@
+# Data directory
+data/
+__pycache__/
+*.pyc
+
+# Model weights (if you want to exclude them)
+*.pth
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db

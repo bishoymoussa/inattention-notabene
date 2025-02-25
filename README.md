@@ -111,10 +111,10 @@ If you use this work in your research, please cite:
 ```bibtex
 @misc{inattention2025,
   title={Inattention NotaBene: Learning What to Forget in Deep Neural Networks},
-  author={Your Name},
+  author={Bishoy Galoaa},
   year={2025},
   publisher={GitHub},
-  howpublished={\url{https://github.com/yourusername/inattention}}
+  howpublished={\url{https://github.com/bishoymoussa/inattention-notabene.git}}
 }
 ```
 
